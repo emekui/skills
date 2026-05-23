@@ -93,7 +93,7 @@ Everything else remains intact from the original `framer-motion-animator`:
 ## Installation
 
 ```bash
-npx skills add emekui/framer-motion-animator-refurbished@framer-motion-animator-refurbished -g
+npx skills add m15-mauricioquezada/framer-motion-animator-refurbished@framer-motion-animator-refurbished -g
 ```
 
 ## Credits
