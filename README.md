@@ -1,102 +1,61 @@
-# framer-motion-animator-refurbished
+# emekui/skills
 
-An enhanced version of [`patricio0312rev/skills@framer-motion-animator`](https://skills.sh/patricio0312rev/skills/framer-motion-animator) (5.1K installs), merged with performance and modernization guidelines from [`mindrally/skills@framer-motion`](https://skills.sh/mindrally/skills/framer-motion).
+A collection of Claude Code skills for software development workflows.
 
-## What changed from the original
+## Skills
 
-### 1. Updated package import (breaking change in newer projects)
+### Karvey Method — Spec-Driven Development
 
-The Framer Motion library was renamed to **Motion**. All imports have been updated:
+A 13-skill suite implementing the Karvey method: spec-driven development pipeline for enterprise projects.
 
-```tsx
-// Before (original skill)
-import { motion } from 'framer-motion';
+| Skill | Description |
+|-------|-------------|
+| `karvey` | Orchestrator — shows pipeline state and next step |
+| `karvey-grill` | Pre-spec interrogation (5 branches: problem, users, data, integrations, constraints, stack) |
+| `karvey-init` | Initialize spec: create spec.json, proposal.md, Epic in ClickUp or PLAN.md |
+| `karvey-requirements` | Generate EARS-format requirements and spec-delta |
+| `karvey-mockup` | Generate navigable HTML mockup (3 levels: shell → section → detail) |
+| `karvey-design-graphic` | Define visual design system (OKLCH colors, typography, motion) |
+| `karvey-architecture` | Enterprise architecture design with explicit security tiers |
+| `karvey-tasks` | Generate implementation tasks (10–30 min each, E{n}.F{n}.T{n} naming) |
+| `karvey-impl` | Execute tasks in BD→Backend→Frontend order with commits per task |
+| `karvey-test` | Run unit and E2E tests, generate test_evidence.md |
+| `karvey-qa` | Code review in 6 dimensions: Security, Errors, Consistency, Impact, Env vars, Versioning |
+| `karvey-archive` | Merge spec-deltas into living specs, archive change, close Epic |
+| `karvey-context` | Dashboard of all active changes and project state |
 
-// After (this skill)
-import { motion } from 'motion/react';
-```
+**Features:**
+- Stack-agnostic (detects from package.json, pyproject.toml, go.mod, etc.)
+- Management fork: ClickUp or Markdown (PLAN.md)
+- Security Tiers 1–4 applied at every phase
+- Knowledge graph via graphify at each document-creating phase
+- Living specs: cumulative spec documents per capability
 
-The old `framer-motion` package still works for existing projects, but new projects should use `motion`.
-
-### 2. Updated installation instructions
-
+**Install all karvey skills:**
 ```bash
-# Recommended (new)
-npm install motion
-
-# Legacy (still works)
-npm install framer-motion
+npx skills add emekui/skills@karvey -g
+npx skills add emekui/skills@karvey-grill -g
+npx skills add emekui/skills@karvey-init -g
+npx skills add emekui/skills@karvey-requirements -g
+npx skills add emekui/skills@karvey-mockup -g
+npx skills add emekui/skills@karvey-design-graphic -g
+npx skills add emekui/skills@karvey-architecture -g
+npx skills add emekui/skills@karvey-tasks -g
+npx skills add emekui/skills@karvey-impl -g
+npx skills add emekui/skills@karvey-test -g
+npx skills add emekui/skills@karvey-qa -g
+npx skills add emekui/skills@karvey-archive -g
+npx skills add emekui/skills@karvey-context -g
 ```
 
-### 3. Added Performance-First section
+---
 
-A new section explaining **which properties are safe to animate** (GPU-accelerated) vs which ones cause layout thrashing:
+### framer-motion-animator-refurbished
 
-- ✅ Safe: `x`, `y`, `scale`, `rotate`, `opacity`, `filter`, `clipPath`
-- ❌ Avoid: `width`, `height`, `top`, `left`, `margin`, `padding`
-
-### 4. Added `will-change` guidance
-
-Explains how to use `will-change` correctly and — critically — **how to avoid creating new objects on every render**:
-
-```tsx
-// Bad — creates new object on every render
-<motion.div style={{ willChange: "transform" }} />
-
-// Good — define outside component
-const transformStyle = { willChange: "transform" };
-<motion.div style={transformStyle} />
-```
-
-### 5. Added memoization patterns
-
-New section on memoizing variants and callbacks to prevent unnecessary re-renders:
-
-```tsx
-const variants = useMemo(() => ({
-  hidden: { opacity: 0 },
-  visible: { opacity: 1 }
-}), []);
-
-const handleComplete = useCallback(() => { ... }, []);
-```
-
-### 6. Added Performance Debugging section
-
-Practical checklist for diagnosing animation jank:
-- Use React DevTools to inspect re-renders
-- Use Chrome DevTools Performance tab
-- Target 60fps minimum, 120fps on high refresh rate displays
-- Test on real mid-range Android devices
-
-### 7. Expanded Best Practices
-
-The original had 8 best practices. This version has 9, with the `motion/react` import as rule #1 and memoization added explicitly.
-
-## What was kept from the original
-
-Everything else remains intact from the original `framer-motion-animator`:
-
-- Core Workflow (6-step process)
-- Basic animations, exit animations with `AnimatePresence`
-- Variants pattern (staggered children, interactive variants)
-- Page transitions (Next.js App Router)
-- Shared layout animations with `LayoutGroup`
-- Gesture animations (drag, swipe to dismiss)
-- Scroll animations (`useInView`, `useScroll`, `useTransform`, parallax)
-- Animation hooks (`useAnimate`, `useMotionValue`)
-- Reusable components (`AnimatedContainer`, `AnimatedList`)
-- Transition presets
-- Reduced motion support
-- Output checklist
-
-## Installation
+Enhanced version of the Framer Motion animator skill with updated package imports (`motion/react`), performance guidelines, and memoization patterns.
 
 ```bash
 npx skills add emekui/skills@framer-motion-animator-refurbished -g
 ```
 
-## Credits
-
-- Original skill: [patricio0312rev/skills@framer-motion-animator](https://skills.sh/patricio0312rev/skills/framer-motion-animator)
-- Performance guidelines: [mindrally/skills@framer-motion](https://skills.sh/mindrally/skills/framer-motion)
+Based on [patricio0312rev/skills@framer-motion-animator](https://skills.sh/patricio0312rev/skills/framer-motion-animator) with improvements from [mindrally/skills@framer-motion](https://skills.sh/mindrally/skills/framer-motion).
