@@ -3,7 +3,7 @@
 ## Estructura de directorios
 
 ```
-spec/
+docs/spec/
 ├── specs/                          # Living specs (fuente de verdad acumulativa)
 │   └── {capability}/
 │       └── spec.md                 # Spec maestra del capability (crece con el tiempo)
@@ -71,7 +71,7 @@ THEN ...
 ## MODIFIED Requirements
 
 ### Requirement: {Nombre existente}
-<!-- Reemplaza COMPLETAMENTE el requirement en spec/specs/{capability}/spec.md -->
+<!-- Reemplaza COMPLETAMENTE el requirement en docs/spec/specs/{capability}/spec.md -->
 WHEN {nuevo comportamiento},
 the system SHALL {nuevo resultado}.
 
@@ -87,11 +87,11 @@ Al completar e implementar un cambio:
 
 1. Verificar que `IMPLEMENTED` existe en el directorio del change
 2. Por cada operación en spec-delta.md:
-   - **ADDED**: append al final de `spec/specs/{capability}/spec.md`
+   - **ADDED**: append al final de `docs/spec/specs/{capability}/spec.md`
    - **MODIFIED**: reemplazar el bloque completo del requirement por nombre
    - **REMOVED**: eliminar el bloque + agregar comentario de deprecación
 3. Git commit: "Merge spec deltas from {change-id}"
-4. Mover carpeta: `mv spec/changes/{change-id} spec/changes/archive/{fecha}-{change-id}`
+4. Mover carpeta: `mv docs/spec/changes/{change-id} docs/spec/changes/archive/{fecha}-{change-id}`
 5. Git commit: "Archive {change-id}"
 
 ## Convención de capabilities

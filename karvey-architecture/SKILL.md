@@ -16,9 +16,10 @@ Generar el diseño técnico de arquitectura empresarial: componentes, boundaries
 ### Paso 1 — Cargar contexto
 
 Leer en paralelo:
-- `spec/changes/{change-id}/spec.json` (security_tier, layers, capability)
-- `spec/changes/{change-id}/requirements.md`
-- `spec/changes/{change-id}/design-spec.md`
+- `docs/spec/changes/{change-id}/spec.json` (security_tier, layers, capability)
+- `docs/spec/changes/{change-id}/requirements.md`
+- `docs/spec/changes/{change-id}/design-spec.md`
+- `docs/spec/project.json` (cloud.provider, iac_tool, git_platform)
 - `rules/security-tiers.md`
 - Steering del proyecto: `product.md`, `tech.md` o equivalentes si existen
 
@@ -59,6 +60,16 @@ Estructura obligatoria:
 
 ## Resumen
 {1 párrafo: qué resuelve y cómo a alto nivel}
+
+## Diagramas (OBLIGATORIO — al menos uno)
+
+Esta arquitectura DEBE incluir al menos un diagrama en mermaid: de **flujo de datos** (data flow) y/o de **componentes**. Recomendado generarlo con la skill transversal `karvey-diagram`, que produce mermaid coherente con el resto de la spec.
+
+```mermaid
+{diagrama de componentes o data flow — generado idealmente con /karvey-diagram}
+```
+
+> Mínimo exigible: 1 diagrama. Para features de tipo "Complex integration" o "New capability", incluir ambos (componentes + data flow).
 
 ## Boundary del sistema
 **Esta spec es dueña de:**
@@ -115,6 +126,24 @@ Estructura obligatoria:
 |---------|-----------|-----------|------|---------|
 | {sistema} | inbound/outbound | REST/WebSocket | {mecanismo} | {ms} |
 
+## Infraestructura Cloud
+
+**Proveedor(es) de nube:** {de `project.json` `cloud.provider`. Si es `mixed`, especificar explícitamente qué parte del sistema corre en qué nube — ej: "backend y BD en Azure; almacenamiento de archivos en GCP Cloud Storage"}
+
+| Servicio cloud | Nube | Propósito | Capa | Security Tier |
+|----------------|------|-----------|------|---------------|
+| {ej. Azure Functions} | Azure | {qué hace} | Backend | Tier {N} |
+| {ej. Azure SQL} | Azure | {qué hace} | BD | Tier {N} |
+| {ej. GCP Cloud Storage} | GCP | {qué hace} | {capa} | Tier {N} |
+
+**Región(es) / zona:** {ej. East US 2 / southamerica-west1}
+
+**Herramienta IaC:** {de `project.json` `iac_tool`}. El código IaC vivirá en {dónde — ej. `infra/` del repo correspondiente, o repo de infra dedicado}.
+
+**Trigger de despliegue:** push a `dev` → deploy DEV; merge a `master` → deploy PROD. Siempre gatillado por pipeline, NUNCA manual.
+
+> El detalle de IaC (módulos, recursos concretos) y pipelines lo genera la FASE 6 (`/karvey-infra`). Esta sección solo declara qué servicios de qué nube se usan a nivel de diseño.
+
 ## Flujo de datos principal
 
 ```
@@ -127,6 +156,18 @@ Describir el flujo paso a paso para el caso de uso principal:
 1. {paso 1: qué hace el actor}
 2. {paso 2: cómo responde el frontend}
 3. {paso N: qué persiste en BD}
+
+## Trust boundaries (límites de confianza)
+
+Marcar explícitamente DÓNDE entra input no confiable y DÓNDE se valida. Todo dato que cruza un límite hacia adentro debe validarse/sanitizarse en ese cruce.
+
+| Límite de confianza | Qué cruza | Lado no confiable | Dónde se valida/sanitiza | Control |
+|---------------------|-----------|-------------------|--------------------------|---------|
+| Cliente → Backend | {payload del request} | Frontend / red pública | {endpoint / capa de entrada} | {validación de schema, auth, sanitización} |
+| Backend → BD | {parámetros del query/SP} | {capa backend} | {SP / capa de acceso a datos} | {parámetros tipados, contexto de usuario} |
+| Sistema externo → Backend | {webhook / respuesta de API} | {sistema externo} | {handler de inbound} | {verificación de firma, validación de payload} |
+
+> Regla: ningún dato proveniente del lado no confiable se usa sin validar. Marcar en el diagrama de data flow el cruce de cada trust boundary (ej. línea punteada `-. untrusted .->`).
 
 ## Puntos de control de seguridad
 
@@ -173,6 +214,31 @@ Describir el flujo paso a paso para el caso de uso principal:
 | Riesgo | Probabilidad | Impacto | Mitigación |
 |--------|-------------|---------|-----------|
 | {riesgo} | Alta/Media/Baja | Alto/Medio/Bajo | {cómo se mitiga} |
+
+## Edge cases / casos extremos (OBLIGATORIO)
+
+Listar los casos límite identificados y cómo los maneja el diseño. Cubrir al menos: inputs vacíos/nulos, valores fuera de rango, concurrencia/duplicados, fallas de dependencias externas (timeout, error, indisponibilidad), datos inconsistentes y límites de tamaño/cantidad.
+
+| Caso extremo | Cómo se maneja | Componente responsable |
+|--------------|----------------|------------------------|
+| {input vacío / nulo} | {comportamiento esperado} | {componente} |
+| {valor fuera de rango / inválido} | {validación + respuesta} | {componente} |
+| {request duplicado / concurrencia} | {idempotencia / lock / dedup} | {componente} |
+| {timeout o error de sistema externo} | {retry / fallback / degradación} | {componente} |
+| {dato inconsistente o estado inesperado} | {detección + manejo} | {componente} |
+
+## Plan de cobertura de tests (alimenta /karvey-test)
+
+Declarar qué se testea y a qué nivel. Cada requirement y cada edge case crítico debe tener al menos un test asociado en algún nivel.
+
+| Qué se testea | Nivel (unit / integración / E2E) | Componente / capa | Caso(s) que cubre |
+|---------------|----------------------------------|-------------------|-------------------|
+| {lógica de validación} | unit | Backend | {requirement / edge case} |
+| {flujo endpoint → BD} | integración | Backend + BD | {requirement} |
+| {flujo de usuario completo} | E2E | Frontend + Backend | {caso de uso principal} |
+| {manejo de edge case} | unit / integración | {capa} | {edge case del listado anterior} |
+
+> Esta tabla es el contrato de testing que consume `/karvey-test` en la FASE de testing.
 ```
 
 ### Paso 5 — Review gate
@@ -184,14 +250,19 @@ Verificar antes de escribir:
 - [ ] No hay componentes con responsabilidad vaga ("helper", "utils" sin descripción)
 - [ ] El plan de archivos es concreto (paths reales, no "crear archivo para X")
 - [ ] Los controles de seguridad cubren el Tier declarado en spec.json
+- [ ] La sección Infraestructura Cloud especifica qué servicios de qué nube se usan (y qué parte de qué nube si es mixto)
 - [ ] Hay estrategia de observabilidad
+- [ ] Hay al menos un diagrama en mermaid (data flow y/o componentes); para "Complex integration" / "New capability" están ambos. Recomendado generarlo con `/karvey-diagram`
+- [ ] Hay sección de Edge cases que cubre al menos: inputs vacíos/nulos, fuera de rango, concurrencia/duplicados, fallas de sistemas externos y datos inconsistentes
+- [ ] Los Trust boundaries están marcados explícitamente: dónde entra input no confiable y dónde se valida cada cruce
+- [ ] Hay Plan de cobertura de tests con nivel (unit/integración/E2E) por ítem; cada requirement y cada edge case crítico tiene al menos un test asociado
 
 Si hay issues: corregir y re-verificar. Máximo 2 iteraciones.
 
 ### Paso 6 — Escribir architecture.md
 
 ```
-spec/changes/{change-id}/architecture.md
+docs/spec/changes/{change-id}/architecture.md
 ```
 
 Actualizar `spec.json`:
@@ -200,8 +271,8 @@ Actualizar `spec.json`:
 
 ### Paso 6B — Actualizar grafo de conocimiento
 
-Invocar `/graphify spec/ --update` para reflejar el `architecture.md` creado.
-Si `spec/graphify-out/` no existe, invocar `/graphify spec/` sin `--update`.
+Sincronizar el conocimiento según `karvey/rules/knowledge-sync.md` (Obsidian si está disponible; mínimo `/graphify docs/spec/ --update`) para reflejar el `architecture.md` creado.
+Si `docs/spec/graphify-out/` no existe, invocar `/graphify docs/spec/` sin `--update`.
 
 ### Paso 7 — Presentar para aprobación
 
@@ -214,5 +285,16 @@ Al aprobar: `approvals.architecture.approved: true`, `phase: "architecture-appro
 ✅ Architecture aprobada
 
 Siguiente paso:
-/karvey-tasks {change-id}
+/karvey-infra {change-id}
 ```
+
+
+## Avanzar a la siguiente fase
+
+Al terminar esta fase y contar con la aprobación correspondiente, **preguntá activamente al usuario**: «¿Avanzamos a la fase Infraestructura ahora?»
+- Si confirma → ejecutá `/karvey-infra {change-id}`.
+- Si prefiere revisar o ajustar antes → esperá. El avance siempre es con el OK del usuario (gate del método).
+- Si retomás en otra sesión, `/karvey {change-id}` indica en qué fase vas y cuál sigue.
+
+---
+*Parte del Método Karvey™ — © HainTech, por Mauricio Quezada Ibáñez · Apache 2.0 · ver `karvey/LICENSE` y `karvey/TRADEMARK.md`.*

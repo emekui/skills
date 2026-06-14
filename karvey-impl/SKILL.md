@@ -16,10 +16,10 @@ Ejecutar las tasks de implementación en orden BD→Backend→Frontend. Ciclo po
 ### Paso 1 — Cargar contexto
 
 Leer:
-- `spec/changes/{change-id}/spec.json`
-- `spec/changes/{change-id}/tasks.md`
-- `spec/changes/{change-id}/architecture.md`
-- `spec/changes/{change-id}/requirements.md`
+- `docs/spec/changes/{change-id}/spec.json`
+- `docs/spec/changes/{change-id}/tasks.md`
+- `docs/spec/changes/{change-id}/architecture.md`
+- `docs/spec/changes/{change-id}/requirements.md`
 
 Verificar `approvals.tasks.approved = true`. Si no, detener.
 
@@ -55,7 +55,12 @@ Ejecutar el trabajo técnico: crear/modificar archivos según el File Structure 
 - Seguir los patrones del stack existente (leer archivos similares del codebase antes de escribir)
 - No hardcodear secretos ni credenciales
 - Validar contexto de usuario/autenticación en cada endpoint y acceso a datos, según el patrón del proyecto
-- 1 commit por task con mensaje descriptivo, siguiendo las convenciones de git del proyecto
+
+**Reglas de branching (ver `karvey/rules/deploy-workflow.md`):**
+- Antes de empezar: hacer `git pull` y trabajar en la rama `feature/{change-id}` (usar el `feature_prefix` de `docs/spec/project.json` si difiere). Crear la rama si no existe.
+- NUNCA hacer commit directo en `dev` ni `master`.
+- 1 commit por task en la feature branch, con mensaje descriptivo siguiendo las convenciones de git del proyecto.
+- Si el proyecto es multi-repo (`project.json:repos`): aplicar el branching y el registro en `CHANGELOG.md` en cada repo que reciba cambios.
 
 **Bump de versión (si el proyecto lo gestiona):**
 Detectar el mecanismo de versionamiento leyendo `architecture.md` o explorando el proyecto:
@@ -65,6 +70,11 @@ Detectar el mecanismo de versionamiento leyendo `architecture.md` o explorando e
 - `git tags` → crear tag al final del Epic
 - Si hay `CHANGELOG.md` o equivalente → agregar entrada con la versión, fecha y descripción
 - Si el proyecto no tiene versionamiento → omitir este paso
+
+ADEMÁS del bump, registrar una entrada en `CHANGELOG.md` siguiendo la política `karvey/rules/changelog-policy.md`. La entrada DEBE incluir:
+- **Humano responsable**: tomado de `git config user.name` / `git config user.email`. Nunca dejarlo vacío ni reemplazarlo por la IA.
+- **Modelo de IA** usado para el cambio.
+- **El por qué** del cambio (motivación / objetivo, no solo el qué).
 
 ### Paso 5 — Test inmediato
 
@@ -169,3 +179,14 @@ clickup_update_task(task_id, status="blocked")
 Marcar `⛔ bloqueado` + nota en PLAN.md.
 
 Reportar al usuario con el bloqueo específico y esperar desbloqueo.
+
+
+## Avanzar a la siguiente fase
+
+Al terminar esta fase y contar con la aprobación correspondiente, **preguntá activamente al usuario**: «¿Avanzamos a la fase Testing ahora?»
+- Si confirma → ejecutá `/karvey-test {change-id}`.
+- Si prefiere revisar o ajustar antes → esperá. El avance siempre es con el OK del usuario (gate del método).
+- Si retomás en otra sesión, `/karvey {change-id}` indica en qué fase vas y cuál sigue.
+
+---
+*Parte del Método Karvey™ — © HainTech, por Mauricio Quezada Ibáñez · Apache 2.0 · ver `karvey/LICENSE` y `karvey/TRADEMARK.md`.*

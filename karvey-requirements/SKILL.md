@@ -16,12 +16,15 @@ Generar requisitos en formato EARS para el cambio, producir el spec-delta con op
 ### Paso 1 — Cargar contexto
 
 Leer:
-- `spec/changes/{change-id}/spec.json`
-- `spec/changes/{change-id}/proposal.md`
-- `spec/specs/{capability}/spec.md` (living spec actual)
+- `docs/spec/changes/{change-id}/spec.json`
+- `docs/spec/changes/{change-id}/prd.md` (PRD generado en karvey-init)
+- `docs/spec/changes/{change-id}/proposal.md`
+- `docs/spec/specs/{capability}/spec.md` (living spec actual)
 - `rules/ears-format.md`
 - `rules/living-specs.md`
 - `rules/security-tiers.md`
+
+Los requirements deben derivar del PRD y cubrir sus objetivos y criterios de aceptación.
 
 Si hay brief de `karvey-grill` en la conversación, incorporarlo.
 
@@ -52,6 +55,8 @@ Estructura del documento:
 WHEN {evento},
 the {sistema} SHALL {comportamiento observable}.
 
+Traza a PRD: {sección u objetivo del PRD}
+
 #### Scenario: {Caso exitoso}
 GIVEN {precondición}
 WHEN {acción}
@@ -77,6 +82,8 @@ THEN the system {respuesta de error específica}
 
 Verificar el borrador:
 - [ ] Cada requisito es testeable y no contiene ambigüedad
+- [ ] Cada requirement traza a una sección u objetivo del PRD
+- [ ] Todos los objetivos del PRD están cubiertos por al menos un requirement
 - [ ] Ningún requisito menciona tecnología de implementación
 - [ ] Los IDs son numéricos (1.1, 1.2, 2.1...)
 - [ ] Cada requisito tiene al menos un scenario de éxito y uno de error
@@ -89,7 +96,7 @@ Si hay ambigüedad real que requiere decisión del usuario: preguntar antes de c
 ### Paso 5 — Escribir requirements.md
 
 ```
-spec/changes/{change-id}/requirements.md
+docs/spec/changes/{change-id}/requirements.md
 ```
 
 Actualizar `spec.json`:
@@ -99,7 +106,7 @@ Actualizar `spec.json`:
 
 ### Paso 6 — Generar spec-delta.md
 
-Comparar los nuevos requisitos contra `spec/specs/{capability}/spec.md`.
+Comparar los nuevos requisitos contra `docs/spec/specs/{capability}/spec.md`.
 
 Para cada requisito nuevo: sección `## ADDED Requirements`
 Para cada requisito que modifica uno existente: sección `## MODIFIED Requirements`
@@ -107,13 +114,13 @@ Para cada requisito que elimina uno existente: sección `## REMOVED Requirements
 
 Si el capability es nuevo (spec.md vacío), todo es ADDED.
 
-Escribir `spec/changes/{change-id}/specs/{capability}/spec-delta.md`.
+Escribir `docs/spec/changes/{change-id}/specs/{capability}/spec-delta.md`.
 
 ### Paso 7 — Presentar para aprobación
 
 Mostrar resumen:
 ```
-📋 Requirements generados: spec/changes/{change-id}/requirements.md
+📋 Requirements generados: docs/spec/changes/{change-id}/requirements.md
 
 Áreas cubiertas:
   - Requirement 1: {nombre} ({N} requisitos)
@@ -183,8 +190,8 @@ Agregar sección Features en `PLAN.md` con la lista de features y sus requisitos
 
 ### Paso 8C — Actualizar grafo de conocimiento
 
-Invocar `/graphify spec/ --update` para reflejar los documentos creados o modificados.
-Si `spec/graphify-out/` no existe, invocar `/graphify spec/` sin `--update`.
+Sincronizar el conocimiento según `karvey/rules/knowledge-sync.md` (Obsidian si está disponible; mínimo `/graphify docs/spec/ --update`) para reflejar los documentos creados o modificados.
+Si `docs/spec/graphify-out/` no existe, invocar `/graphify docs/spec/` sin `--update`.
 
 ### Paso 9 — Output final
 
@@ -192,8 +199,8 @@ Si `spec/graphify-out/` no existe, invocar `/graphify spec/` sin `--update`.
 ✅ Requirements aprobados
 
 Archivos creados/actualizados:
-  - spec/changes/{change-id}/requirements.md
-  - spec/changes/{change-id}/specs/{capability}/spec-delta.md
+  - docs/spec/changes/{change-id}/requirements.md
+  - docs/spec/changes/{change-id}/specs/{capability}/spec-delta.md
   - spec.json actualizado
 
 Gestión: {Features E{n}.F1..F{n} creados en ClickUp | PLAN.md actualizado}
@@ -201,3 +208,14 @@ Gestión: {Features E{n}.F1..F{n} creados en ClickUp | PLAN.md actualizado}
 Siguiente paso:
 /karvey-mockup {change-id}
 ```
+
+
+## Avanzar a la siguiente fase
+
+Al terminar esta fase y contar con la aprobación correspondiente, **preguntá activamente al usuario**: «¿Avanzamos a la fase Mockup ahora?»
+- Si confirma → ejecutá `/karvey-mockup {change-id}`.
+- Si prefiere revisar o ajustar antes → esperá. El avance siempre es con el OK del usuario (gate del método).
+- Si retomás en otra sesión, `/karvey {change-id}` indica en qué fase vas y cuál sigue.
+
+---
+*Parte del Método Karvey™ — © HainTech, por Mauricio Quezada Ibáñez · Apache 2.0 · ver `karvey/LICENSE` y `karvey/TRADEMARK.md`.*

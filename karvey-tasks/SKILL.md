@@ -16,12 +16,13 @@ Generar el plan de tareas de implementación desde la arquitectura aprobada. Reg
 ### Paso 1 — Cargar contexto
 
 Leer:
-- `spec/changes/{change-id}/spec.json`
-- `spec/changes/{change-id}/requirements.md`
-- `spec/changes/{change-id}/architecture.md`
+- `docs/spec/changes/{change-id}/spec.json`
+- `docs/spec/changes/{change-id}/requirements.md`
+- `docs/spec/changes/{change-id}/architecture.md`
+- `docs/spec/changes/{change-id}/infra.md`
 - `rules/clickup-protocol.md`
 
-Verificar `approvals.architecture.approved = true`. Si no, detener.
+Verificar `approvals.infra.approved = true`. Si no, detener.
 
 Determinar modo secuencial: si `--sequential`, no usar marcadores de paralelismo.
 
@@ -41,6 +42,8 @@ Para cada Feature identificado en architecture.md, generar tasks por capa siguie
 [BD] → [Backend] → [Frontend]
 ```
 Tasks de la misma capa dentro de un Feature pueden marcarse `(P)` si son independientes.
+
+**Etiquetas de capa válidas:** `[BD/Backend/Frontend/Infra]`. Se permiten tasks de tipo `Infra` para ajustes de IaC/pipeline que surjan durante la implementación (la infra base ya viene definida en `infra.md`).
 
 **Estructura de tasks.md:**
 ```markdown
@@ -95,15 +98,15 @@ Si hay gaps: corregir y re-verificar. Máximo 2 iteraciones.
 ### Paso 4 — Escribir tasks.md
 
 ```
-spec/changes/{change-id}/tasks.md
+docs/spec/changes/{change-id}/tasks.md
 ```
 
 Actualizar `spec.json`: `phase: "tasks-generated"`, `approvals.tasks.generated: true`.
 
 ### Paso 4B — Actualizar grafo de conocimiento
 
-Invocar `/graphify spec/ --update` para reflejar el `tasks.md` creado.
-Si `spec/graphify-out/` no existe, invocar `/graphify spec/` sin `--update`.
+Sincronizar el conocimiento según `karvey/rules/knowledge-sync.md` (Obsidian si está disponible; mínimo `/graphify docs/spec/ --update`) para reflejar el `tasks.md` creado.
+Si `docs/spec/graphify-out/` no existe, invocar `/graphify docs/spec/` sin `--update`.
 
 ### Paso 5 — Presentar para aprobación
 
@@ -111,7 +114,7 @@ Si flag `-y`: auto-aprobar.
 
 Mostrar resumen:
 ```
-📋 Tasks generadas: spec/changes/{change-id}/tasks.md
+📋 Tasks generadas: docs/spec/changes/{change-id}/tasks.md
 
 Resumen:
   Features: {N}
@@ -237,3 +240,14 @@ Gestión: {N tasks creadas en ClickUp con dependencias | PLAN.md actualizado}
 Siguiente paso:
 /karvey-impl {change-id}
 ```
+
+
+## Avanzar a la siguiente fase
+
+Al terminar esta fase y contar con la aprobación correspondiente, **preguntá activamente al usuario**: «¿Avanzamos a la fase Implementación ahora?»
+- Si confirma → ejecutá `/karvey-impl {change-id}`.
+- Si prefiere revisar o ajustar antes → esperá. El avance siempre es con el OK del usuario (gate del método).
+- Si retomás en otra sesión, `/karvey {change-id}` indica en qué fase vas y cuál sigue.
+
+---
+*Parte del Método Karvey™ — © HainTech, por Mauricio Quezada Ibáñez · Apache 2.0 · ver `karvey/LICENSE` y `karvey/TRADEMARK.md`.*

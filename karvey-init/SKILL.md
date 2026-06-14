@@ -1,6 +1,6 @@
 ---
 name: karvey-init
-description: Initialize a new Karvey spec. Creates the directory structure, spec.json, and registers the Epic in ClickUp (or PLAN.md if not using ClickUp). Use after karvey-grill or when starting a new feature. Triggers include "karvey init", "iniciar spec", "nueva feature", "nuevo cambio".
+description: Initialize a new Karvey spec. Creates the directory structure, spec.json, and registers the Epic in ClickUp (or PLAN.md if not using ClickUp). Use after karvey-grill or when starting a new feature. Triggers include "karvey init", "iniciar spec", "nueva feature", "nuevo cambio", "spec-driven", "SDD", "kiro", "cc-sdd", "gstack", "Garry Tan", "PRD", "iniciar proyecto spec-driven", "nuevo método", "scaffolding".
 allowed-tools: Read, Write, Edit, Bash, Glob, AskUserQuestion
 argument-hint: <change-id> [--capability <nombre>]
 ---
@@ -23,10 +23,59 @@ Si no, pedir al usuario: "Describí brevemente el problema que resuelve este cam
 Si `$ARGUMENTS` incluye el change-id, usarlo. Si no, generarlo desde la descripción:
 - Formato: `{add|fix|update|remove}-{nombre-descriptivo-url-safe}`
 - Ejemplos: `add-call-transfer`, `fix-webhook-retry`, `update-tenant-config`
-- Verificar que no exista en `spec/changes/`: `find spec/changes -maxdepth 1 -type d -name "{change-id}"`
+- Verificar que no exista en `docs/spec/changes/`: `find docs/spec/changes -maxdepth 1 -type d -name "{change-id}"`
 - Si existe conflicto, agregar sufijo numérico: `add-call-transfer-2`
 
-### Paso 3 — Preguntar sistema de gestión
+### Paso 3 — Config del proyecto (project.json)
+
+Verificar si existe `docs/spec/project.json`.
+
+**Si YA existe:** leerlo y reutilizar sus valores. No volver a preguntar nada de esta config.
+
+**Si NO existe:** crearlo. Pre-poblar desde la síntesis de `karvey-grill` si está disponible en la conversación; preguntar o inferir los campos faltantes. El esquema completo está en `karvey/rules/project-config.md` (citar esa regla). Campos:
+
+- **`git_platform`**: `github` | `azure_devops`.
+- **`cloud.provider`**: `azure` | `gcp` | `aws` | `mixed` | `none`.
+- **`iac_tool`**: `terraform` | `bicep` | `pulumi` | `none`.
+- **`knowledge_sync`**: decidir según `karvey/rules/knowledge-sync.md` — si hay un MCP de Obsidian disponible en la sesión → `"obsidian"`; si no → `"graphify"`.
+- **`repos`**: arreglo de repos del proyecto. MÍNIMO 1 elemento, nunca vacío.
+- **`spec_repo`**: si `repos` tiene 1 → ese mismo; si hay varios → preguntar cuál es el repo principal donde vive `docs/spec/`.
+- **`branch_flow`**: por defecto `{ "feature_prefix": "feature/", "integration": "dev", "production": "master" }`.
+
+Escribir `docs/spec/project.json` con estos valores (ver esquema en `karvey/rules/project-config.md`).
+
+### Paso 3.5 — Enforcement opt-in (hooks)
+
+Después de crear `project.json`, preguntar al usuario si quiere activar los **hooks de enforcement** del método Karvey. Ver detalle en `karvey/rules/enforcement.md`.
+
+```
+¿Querés activar los hooks de enforcement de Karvey? (OPT-IN, podés activarlos después)
+  - git-flow hook: bloquea commits directos a las ramas de integración/producción y fuerza el flujo de feature branches (lee branch_flow).
+  - plan-gate hook: bloquea modificaciones sin plan aprobado.
+```
+
+**Si acepta** uno o ambos: marcar en `project.json` el bloque `enforcement`:
+```json
+"enforcement": {
+  "git_flow_hook": true,
+  "plan_gate_hook": true
+}
+```
+(poner `true` solo en los que el usuario aceptó). Indicar al usuario que los hooks se instalan ejecutando:
+```
+/karvey-guard --install
+```
+`karvey-guard --install` escribe los hooks en el `settings.json` del proyecto leyendo `branch_flow` de `project.json`.
+
+**Si NO acepta:** dejar ambos flags en `false`. El enforcement es OPT-IN — nunca forzarlo.
+```json
+"enforcement": {
+  "git_flow_hook": false,
+  "plan_gate_hook": false
+}
+```
+
+### Paso 4 — Preguntar sistema de gestión
 
 ```
 ¿Este proyecto usa ClickUp para gestión?
@@ -40,37 +89,41 @@ Si `$ARGUMENTS` incluye el change-id, usarlo. Si no, generarlo desde la descripc
 - Se creará `PLAN.md` en el directorio del cambio
 - No se requiere ninguna configuración adicional
 
-### Paso 4 — Recopilar metadata
+### Paso 5 — Recopilar metadata
 
 Preguntar (o inferir del contexto pre-spec):
 
-1. **Capability**: dominio funcional al que pertenece (ej: `call-management`, `authentication`, `notifications`). Si no existe en `spec/specs/`, se creará.
+1. **Capability**: dominio funcional al que pertenece (ej: `call-management`, `authentication`, `notifications`). Si no existe en `docs/spec/specs/`, se creará.
 2. **Security Tier**: 1-4. Leer `rules/security-tiers.md` para orientar al usuario.
 3. **Capas involucradas**: BD / Backend / Frontend / Infra (puede ser múltiple)
 4. **Descripción breve**: 1-2 líneas del problema que resuelve
+5. **Goal (norte del cambio)**: el objetivo concreto que se busca lograr — qué resultado, observable y verificable, define el éxito de este cambio. Preguntar: "¿Cuál es el norte de este cambio? ¿Qué resultado concreto queremos lograr?". Guardarlo tal cual en `spec.json` (`goal`) y reflejarlo como sección destacada en `prd.md`.
 
-### Paso 5 — Crear estructura de directorios
+> **Nota — el goal da persistencia.** El `goal` queda como norte del cambio en todas las fases: cada fase Karvey lo relee al iniciar para perseguir el resultado sin detenerse hasta lograrlo, respetando siempre los gates de plan y seguridad.
+
+### Paso 6 — Crear estructura de directorios
 
 ```bash
-mkdir -p spec/changes/{change-id}/specs/{capability}
-mkdir -p spec/specs/{capability}  # si no existe
+mkdir -p docs/spec/changes/{change-id}/specs/{capability}
+mkdir -p docs/spec/specs/{capability}  # si no existe
 ```
 
-Si `spec/specs/{capability}/spec.md` no existe, crearlo:
+Si `docs/spec/specs/{capability}/spec.md` no existe, crearlo:
 ```markdown
 # Spec: {Capability}
 
 <!-- Living spec del capability {capability}. Se actualiza al archivar cada cambio. -->
 ```
 
-### Paso 6 — Crear spec.json
+### Paso 7 — Crear spec.json
 
-Escribir `spec/changes/{change-id}/spec.json` con:
+Escribir `docs/spec/changes/{change-id}/spec.json` con:
 ```json
 {
   "change_id": "{change-id}",
   "capability": "{capability}",
   "description": "{descripción breve}",
+  "goal": "{norte del cambio: resultado concreto y verificable que define el éxito}",
   "layers": ["{BD|Backend|Frontend|Infra}"],
   "created_at": "{ISO timestamp}",
   "updated_at": "{ISO timestamp}",
@@ -89,37 +142,58 @@ Escribir `spec/changes/{change-id}/spec.json` con:
     "mockup": { "generated": false, "approved": false },
     "design_graphic": { "generated": false, "approved": false },
     "architecture": { "generated": false, "approved": false },
-    "tasks": { "generated": false, "approved": false }
+    "tasks": { "generated": false, "approved": false },
+    "infra": { "generated": false, "approved": false },
+    "qa": { "generated": false, "approved": false },
+    "deploy": { "generated": false, "approved": false }
   }
 }
 ```
 
-### Paso 7 — Crear proposal.md
+### Paso 8 — Crear prd.md
 
-Escribir `spec/changes/{change-id}/proposal.md`:
+Escribir `docs/spec/changes/{change-id}/prd.md` (Product Requirements Document formal):
 ```markdown
-# Propuesta: {change-id}
+# PRD: {change-id}
 
-## Por qué
-{problema que resuelve, quién lo tiene, impacto actual}
+## Resumen ejecutivo
+{síntesis de 2-3 líneas: qué se construye y para qué}
 
-## Qué cambia
-{descripción de lo que se modifica o agrega}
+## 🎯 Goal (norte del cambio)
+> {resultado concreto y verificable que define el éxito de este cambio}
 
-## Impacto
-- Capas afectadas: {lista}
-- Sistemas relacionados: {lista}
-- Breaking changes: {Sí/No — descripción}
+Este goal es el norte que persiguen todas las fases Karvey: cada fase lo relee al iniciar para avanzar hacia el resultado sin detenerse hasta lograrlo, respetando los gates de plan y seguridad.
+
+## Problema y contexto
+- **Quién lo tiene:** {usuarios/roles afectados}
+- **Situación actual:** {cómo se resuelve hoy o por qué duele}
+- **Impacto:** {costo de no resolverlo}
+
+## Objetivos y métricas de éxito
+{objetivos medibles, p.ej. "reducir X de N a M", "habilitar Y para Z usuarios"}
+
+## User stories / casos de uso principales
+- Como {rol}, quiero {acción} para {beneficio}.
+- {…}
+
+## Alcance (in scope)
+- {qué SÍ entra en este cambio}
+
+## Fuera de alcance (out of scope)
+- {qué NO entra y por qué}
+
+## Stakeholders
+{quién pide, quién aprueba, quién se ve impactado}
 
 ## Restricciones
 - Security Tier: {N} — {justificación}
 - Dependencias previas: {lista}
 
-## Criterios de éxito
-{cómo verificar que funciona}
+## Criterios de aceptación
+{condiciones verificables para dar el cambio por completo}
 ```
 
-### Paso 8A — Crear Epic en ClickUp (si management=clickup)
+### Paso 9A — Crear Epic en ClickUp (si management=clickup)
 
 Leer credenciales de `.connections.json` (ver `rules/clickup-protocol.md`). Si no existe, crearlo y agregarlo al `.gitignore` antes de continuar.
 Determinar el próximo número de Epic buscando en ClickUp:
@@ -162,9 +236,9 @@ Features:
 Realizado con Método Karvey
 ```
 
-### Paso 8B — Crear PLAN.md (si management=markdown)
+### Paso 9B — Crear PLAN.md (si management=markdown)
 
-Escribir `spec/changes/{change-id}/PLAN.md`:
+Escribir `docs/spec/changes/{change-id}/PLAN.md`:
 ```markdown
 # Plan: {change-id}
 
@@ -211,21 +285,23 @@ Escribir `spec/changes/{change-id}/PLAN.md`:
 | {fecha} | init | Spec inicializada |
 ```
 
-### Paso 8C — Actualizar grafo de conocimiento
+### Paso 9C — Actualizar grafo de conocimiento
 
-Invocar `/graphify spec/ --update` para reflejar los documentos creados.
-Si `spec/graphify-out/` no existe (primera vez en el proyecto), invocar `/graphify spec/` sin `--update`.
+Sincronizar el conocimiento según `karvey/rules/knowledge-sync.md` (Obsidian si está disponible; mínimo `/graphify docs/spec/ --update`) para reflejar los documentos creados.
+Si `docs/spec/graphify-out/` no existe (primera vez en el proyecto), invocar `/graphify docs/spec/` sin `--update`.
 
-### Paso 9 — Output final
+### Paso 10 — Output final
 
 ```
-✅ Spec inicializada: spec/changes/{change-id}/
+✅ Spec inicializada: docs/spec/changes/{change-id}/
+
+Config del proyecto: docs/spec/project.json (creado | leído)
 
 Archivos creados:
-  - spec/changes/{change-id}/spec.json
-  - spec/changes/{change-id}/proposal.md
-  - spec/changes/{change-id}/PLAN.md (si markdown)
-  - spec/specs/{capability}/spec.md (si nuevo capability)
+  - docs/spec/changes/{change-id}/spec.json
+  - docs/spec/changes/{change-id}/prd.md
+  - docs/spec/changes/{change-id}/PLAN.md (si markdown)
+  - docs/spec/specs/{capability}/spec.md (si nuevo capability)
 
 Gestión: {ClickUp Epic E{n} creado | PLAN.md creado}
 Security Tier: {N}
@@ -236,6 +312,17 @@ Siguiente paso:
 
 ## Safety
 
-- Si `spec/changes/{change-id}` ya existe con `spec.json`, preguntar antes de sobrescribir
+- Si `docs/spec/changes/{change-id}` ya existe con `spec.json`, preguntar antes de sobrescribir
 - Si ClickUp falla, ofrecer continuar en modo markdown como fallback
 - Validar que el `change-id` sea URL-safe (solo letras minúsculas, números y guiones)
+
+
+## Avanzar a la siguiente fase
+
+Al terminar esta fase y contar con la aprobación correspondiente, **preguntá activamente al usuario**: «¿Avanzamos a la fase Requirements ahora?»
+- Si confirma → ejecutá `/karvey-requirements {change-id}`.
+- Si prefiere revisar o ajustar antes → esperá. El avance siempre es con el OK del usuario (gate del método).
+- Si retomás en otra sesión, `/karvey {change-id}` indica en qué fase vas y cuál sigue.
+
+---
+*Parte del Método Karvey™ — © HainTech, por Mauricio Quezada Ibáñez · Apache 2.0 · ver `karvey/LICENSE` y `karvey/TRADEMARK.md`.*
